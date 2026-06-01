@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: treehole-db
+    environment:
+      POSTGRES_DB: ${DB_NAME:-treehole}
+      POSTGRES_USER: ${DB_USER:-treehole}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-treehole123}
+      TZ: Asia/Shanghai
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./migrations:/docker-entrypoint-initdb.d
+    ports:
+      - "5434:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-treehole}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    container_name: treehole-backend
+    environment:
+      DATABASE_URL: postgres://${DB_USER:-treehole}:${DB_PASSWORD:-treehole123}@postgres:5432/${DB_NAME:-treehole}?sslmode=disable
+      SERVER_PORT: 8080
+      RATE_LIMIT: ${RATE_LIMIT:-10}
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+    container_name: treehole-frontend
+    ports:
+      - "8001:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+    driver: local
