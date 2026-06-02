@@ -19,8 +19,15 @@ class APIClient {
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Failed to create message');
+      let errorMessage = 'Failed to create message';
+      try {
+        const error = await response.json();
+        errorMessage = error.error || errorMessage;
+      } catch {
+        // 如果响应不是 JSON，使用 HTTP 状态文本
+        errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+      }
+      throw new Error(errorMessage);
     }
 
     return response.json();
@@ -47,7 +54,14 @@ class APIClient {
     });
 
     if (!response.ok) {
-      throw new Error('Failed to hug message');
+      let errorMessage = 'Failed to hug message';
+      try {
+        const error = await response.json();
+        errorMessage = error.error || errorMessage;
+      } catch {
+        errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+      }
+      throw new Error(errorMessage);
     }
 
     return response.json();
