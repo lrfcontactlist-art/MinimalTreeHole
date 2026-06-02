@@ -31,7 +31,13 @@ services:
       SERVER_PORT: 8080
       RATE_LIMIT: ${RATE_LIMIT:-10}
     ports:
-      - "8080:8080"
+      - "8082:8080"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/api/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+      start_period: 15s
     depends_on:
       postgres:
         condition: service_healthy
@@ -45,7 +51,8 @@ services:
     ports:
       - "8001:80"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     restart: unless-stopped
 
 volumes:
